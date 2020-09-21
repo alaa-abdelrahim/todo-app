@@ -1,5 +1,6 @@
-let count = 0;
 let tasks = [];
+let count = 0;
+createAllTasks();
 
 /* -----------------------------
 ----------- dark mode ----------
@@ -7,11 +8,8 @@ let tasks = [];
 
 let darkSwitcher = document.querySelector('#dark-mode');
 
-// get cookie
-let siteCookies = document.cookie;
-siteCookies = siteCookies.split('; ');
-let modeCookie = siteCookies.filter(cookie => cookie.includes('mode'))[0];
-if (modeCookie.split('=')[1] === 'dark') {
+// get user preferable mode
+if (localStorage.getItem('mode') === 'dark') {
     darkSwitcher.checked = true;
     document.body.classList.add('dark-mode');
 }
@@ -20,10 +18,10 @@ if (modeCookie.split('=')[1] === 'dark') {
 darkSwitcher.addEventListener('change', function (e) {
     if (e.target.checked) {
         document.body.classList.add('dark-mode');
-        document.cookie = "mode=dark; expires=Wed, 30 Sep 2026 12:00:00 UTC";
+        localStorage.setItem('mode', 'dark');
     } else {
         document.body.classList.remove('dark-mode');
-        document.cookie = "mode=light; expires=Wed, 30 Sep 2026 12:00:00 UTC";
+        localStorage.removeItem('mode');
     }
 })
 
@@ -55,11 +53,14 @@ addForm.addEventListener('submit', e => {
         addForm.add.value = '';
         // increase count
         count++;
+        // store data
+        storeData();
     } else {
         alert('Please, Enter a valid task');
     }
 });
 
+// create task div on the dom
 // create task div on the dom
 function createNewTaskInDom(newTask, display) {
     let check = newTask.status === 'active' ? '' : "checked";
@@ -94,14 +95,19 @@ function checkboxHandler(e) {
     let index = (e.target.parentElement.id).split('_')[1];
     let taskObj = tasks.filter(task => task.id == index)[0];
     taskObj.status = status;
+    storeData();
 }
 
 // function to delete specific task
 function deleteTask(e) {
     let div = e.target.parentElement
+    if (e.target.tagName === 'path') {
+        div = e.target.parentElement.parentElement;
+    }
     let index = (div.id).split('_')[1];
     tasks = tasks.filter(obj => obj.id != index);
     div.remove();
+    storeData();
 }
 
 // delete all completed tasks
@@ -112,6 +118,7 @@ document.querySelector('#delete-all').addEventListener('click', e => {
         tasks = tasks.filter(obj => obj.id != index);
         task.remove();
     });
+    storeData();
 })
 
 /* -----------------------------
@@ -128,7 +135,7 @@ tabsList.forEach(tab => {
         // change the display of delete buttuns
         let deleteAllBtn = document.querySelector('#delete-all');
         deleteAllBtn.classList.remove('d-flex');
-        
+
         // display tasks according to clicked tab
         let tasks = document.querySelectorAll('#display div');
         tasks.forEach(task => {
@@ -149,3 +156,24 @@ tabsList.forEach(tab => {
         })
     })
 })
+
+/* -----------------------------
+- storing data in localstorage -
+----------------------------- */
+
+// get all storing tasks to update the UI
+function createAllTasks() {
+    if (localStorage.getItem('tasks')) {
+        tasks = JSON.parse(localStorage.getItem('tasks'));
+        for (let i = 0; i < tasks.length; i++) {
+            count = parseInt(tasks[i].id) > count ? parseInt(tasks[i].id) : count;
+            createNewTaskInDom(tasks[i]);
+        }
+        count++;
+    }
+}
+
+// store data in localstorage
+function storeData() {
+    localStorage.setItem(`tasks`, JSON.stringify(tasks));
+}
