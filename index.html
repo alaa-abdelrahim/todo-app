@@ -1,0 +1,59 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To Do App</title>
+  <!-- style sheets -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+  <!-- scripts -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+    integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"
+    integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV"
+    crossorigin="anonymous"></script>
+</head>
+
+<body>
+
+  <section id="app-container" class="mx-auto pt-5 position-relative">
+    <!-- the app title -->
+    <h1 class="text-center pb-5 mb-3">#todo</h1>
+
+    <!-- dark mode switch -->
+    <div class="dark-mode-switch custom-control custom-switch position-absolute">
+      <input type="checkbox" class="custom-control-input" id="dark-mode">
+      <label class="custom-control-label" for="dark-mode">Dark</label>
+    </div>
+
+    <!-- navigation tabs -->
+    <ul id="nav-tabs" class="list-unstyled d-flex align-items-center mx-auto">
+      <li id="all" class="active-tab pb-4 px-4">All</li>
+      <li id="active" class="pb-4 px-4">Active</li>
+      <li id="completed" class="pb-4 px-4">Completed</li>
+    </ul>
+
+    <!-- form to add new item -->
+    <form id="add-details" class="d-flex align-items-center justify-content-between mb-4">
+      <input type="text" name="add" placeholder="add details" class="form-control">
+      <button class="btn btn-primary px-4">Add</button>
+    </form>
+
+    <!-- display items -->
+    <section id="display"></section>
+
+    <!-- delete all button -->
+    <button id="delete-all" class="btn btn-danger px-4 ml-auto mt-4 d-none align-items-center"><span
+        class="material-icons">delete</span> delete all</button>
+  </section>
+  <footer class="w-100 fixed-bottom text-center py-4">
+    <small>&copy; Alaa Abd El-Rahim | devchallenges.io</small>
+  </footer>
+  <script src="./app.js"></script>
+</body>
+
+</html>
