@@ -1,0 +1,63 @@
+#app-container {
+    width: 50%;
+}
+
+#nav-tabs {
+    border-bottom: 1px solid rgb(204, 204, 204);
+    justify-content: space-evenly;
+}
+
+#nav-tabs li,
+.custom-control span {
+    cursor: pointer;
+}
+
+.active-tab {
+    border-bottom: 3px solid #007bff;
+}
+
+.form-control {
+    width: 83%;
+}
+
+.line-through {
+    text-decoration: line-through;
+}
+
+.custom-control span {
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+footer {
+    background-color: #fff;
+}
+
+/* dark mode style */
+
+.dark-mode-switch {
+    top: 4.4rem;
+    right: 0;
+}
+
+.dark-mode {
+    background-color: #222;
+    color: #ccc;
+}
+
+.dark-mode .form-control,
+.dark-mode footer {
+    background-color: #222;
+    color: #ccc;
+}
+
+.form-control::placeholder {
+    color: #ccc;
+}
+
+@media only screen and (max-width: 768px){
+    #app-container {
+        width: 90%;
+    }
+}
