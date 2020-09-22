@@ -1,6 +1,19 @@
 let tasks = [];
 let count = 0;
-createAllTasks();
+let db, openDB = indexedDB.open("todo", 1);
+openDB.onsuccess = function () {
+    db = openDB.result;
+    createAllTasks();
+};
+
+openDB.onupgradeneeded = function (e) {
+    let db = openDB.result;
+    let tasksObjectStore;
+    if (!db.objectStoreNames.contains('tasks')) {
+        tasksObjectStore = db.createObjectStore('tasks', { keyPath: 'id' });
+    }
+    tasksObjectStore.createIndex("status", "status", { unique: false });
+};
 
 /* -----------------------------
 ----------- dark mode ----------
@@ -8,11 +21,8 @@ createAllTasks();
 
 let darkSwitcher = document.querySelector('#dark-mode');
 
-// get cookie
-let siteCookies = document.cookie;
-siteCookies = siteCookies.split('; ');
-let modeCookie = siteCookies.filter(cookie => cookie.includes('mode'))[0];
-if (modeCookie.split('=')[1] === 'dark') {
+// get user preferable mode
+if (localStorage.getItem('mode') === 'dark') {
     darkSwitcher.checked = true;
     document.body.classList.add('dark-mode');
 }
@@ -21,10 +31,10 @@ if (modeCookie.split('=')[1] === 'dark') {
 darkSwitcher.addEventListener('change', function (e) {
     if (e.target.checked) {
         document.body.classList.add('dark-mode');
-        document.cookie = "mode=dark; expires=Wed, 30 Sep 2026 12:00:00 UTC";
+        localStorage.setItem('mode', 'dark');
     } else {
         document.body.classList.remove('dark-mode');
-        document.cookie = "mode=light; expires=Wed, 30 Sep 2026 12:00:00 UTC";
+        localStorage.removeItem('mode');
     }
 })
 
@@ -57,7 +67,8 @@ addForm.addEventListener('submit', e => {
         // increase count
         count++;
         // store data
-        storeData();
+        let tasksStore = openTransaction('readwrite');
+        let addRequest = tasksStore.add(newTask);
     } else {
         alert('Please, Enter a valid task');
     }
@@ -97,7 +108,8 @@ function checkboxHandler(e) {
     let index = (e.target.parentElement.id).split('_')[1];
     let taskObj = tasks.filter(task => task.id == index)[0];
     taskObj.status = status;
-    storeData();
+    let tasksStore = openTransaction('readwrite');
+    let putRequest = tasksStore.put(taskObj);
 }
 
 // function to delete specific task
@@ -108,19 +120,28 @@ function deleteTask(e) {
     }
     let index = (div.id).split('_')[1];
     tasks = tasks.filter(obj => obj.id != index);
-    div.remove();
-    storeData();
+    let tasksStore = openTransaction('readwrite');
+    let deleteObj = tasksStore.delete(parseInt(index));
+    deleteObj.onsuccess = e => {
+        div.remove();
+    }
 }
 
 // delete all completed tasks
 document.querySelector('#delete-all').addEventListener('click', e => {
-    let completedTasks = document.querySelectorAll('[data-status=completed]');
-    completedTasks.forEach(task => {
-        let index = (task.id).split('_')[1];
-        tasks = tasks.filter(obj => obj.id != index);
-        task.remove();
-    });
-    storeData();
+    let tasksStore = openTransaction('readwrite');
+    let statusIndex = tasksStore.index("status");
+    let searchRequest = statusIndex.getAll('completed');
+    searchRequest.onsuccess = e => {
+        let completedTasks = searchRequest.result;
+        completedTasks.forEach(task => {
+            let id = task.id;
+            let deleteRequest = tasksStore.delete(id);
+            deleteRequest.onsuccess = e => {
+                document.querySelector(`#task_${id}`).remove();
+            }
+        })
+    };
 })
 
 /* -----------------------------
@@ -137,7 +158,7 @@ tabsList.forEach(tab => {
         // change the display of delete buttuns
         let deleteAllBtn = document.querySelector('#delete-all');
         deleteAllBtn.classList.remove('d-flex');
-        
+
         // display tasks according to clicked tab
         let tasks = document.querySelectorAll('#display div');
         tasks.forEach(task => {
@@ -160,13 +181,15 @@ tabsList.forEach(tab => {
 })
 
 /* -----------------------------
-- storing data in localstorage -
+--- storing data in indexedDB --
 ----------------------------- */
 
 // get all storing tasks to update the UI
 function createAllTasks() {
-    if (localStorage.getItem('tasks')) {
-        tasks = JSON.parse(localStorage.getItem('tasks'));
+    let tasksStore = openTransaction('readonly');
+    let allTasks = tasksStore.getAll();
+    allTasks.onsuccess = e => {
+        tasks = allTasks.result;
         for (let i = 0; i < tasks.length; i++) {
             count = parseInt(tasks[i].id) > count ? parseInt(tasks[i].id) : count;
             createNewTaskInDom(tasks[i]);
@@ -175,7 +198,7 @@ function createAllTasks() {
     }
 }
 
-// store data in localstorage
-function storeData(){
-    localStorage.setItem(`tasks`, JSON.stringify(tasks));
+function openTransaction(type) {
+    let transaction = db.transaction("tasks", type);
+    return transaction.objectStore("tasks");
 }
