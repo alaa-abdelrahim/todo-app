@@ -1,19 +1,10 @@
 let tasks = [];
 let count = 0;
-let db, openDB = indexedDB.open("todo", 1);
-openDB.onsuccess = function () {
-    db = openDB.result;
-    createAllTasks();
-};
-
-openDB.onupgradeneeded = function (e) {
-    let db = openDB.result;
-    let tasksObjectStore;
-    if (!db.objectStoreNames.contains('tasks')) {
-        tasksObjectStore = db.createObjectStore('tasks', { keyPath: 'id' });
-    }
-    tasksObjectStore.createIndex("status", "status", { unique: false });
-};
+let sqldb = openDatabase('todo', '1.0', 'todo app', 2 * 1024 * 1024);
+sqldb.transaction(function (tx) {
+    tx.executeSql('CREATE TABLE IF NOT EXISTS TASKS (id unique, value, status)');
+});
+createAllTasks();
 
 /* -----------------------------
 ----------- dark mode ----------
@@ -67,8 +58,9 @@ addForm.addEventListener('submit', e => {
         // increase count
         count++;
         // store data
-        let tasksStore = openTransaction('readwrite');
-        let addRequest = tasksStore.add(newTask);
+        sqldb.transaction(function (tx) {
+            tx.executeSql('INSERT INTO TASKS (id, value, status) VALUES (?, ?, ?)', [newTask.id, newTask.value, newTask.status]);
+        });
     } else {
         alert('Please, Enter a valid task');
     }
@@ -108,40 +100,37 @@ function checkboxHandler(e) {
     let index = (e.target.parentElement.id).split('_')[1];
     let taskObj = tasks.filter(task => task.id == index)[0];
     taskObj.status = status;
-    let tasksStore = openTransaction('readwrite');
-    let putRequest = tasksStore.put(taskObj);
+    sqldb.transaction(function (tx) {
+        tx.executeSql('UPDATE TASKS SET status=? WHERE id=?', [taskObj.status, taskObj.id]);
+    });
 }
 
 // function to delete specific task
 function deleteTask(e) {
     let div = e.target.parentElement
-    if (e.target.tagName === 'path') {
-        div = e.target.parentElement.parentElement;
-    }
     let index = (div.id).split('_')[1];
     tasks = tasks.filter(obj => obj.id != index);
-    let tasksStore = openTransaction('readwrite');
-    let deleteObj = tasksStore.delete(parseInt(index));
-    deleteObj.onsuccess = e => {
-        div.remove();
-    }
+    sqldb.transaction(function (tx) {
+        tx.executeSql("DELETE FROM TASKS WHERE id=?", [parseInt(index)],
+            function (tx, result) {
+                div.remove();
+            }, null);
+    });
 }
 
 // delete all completed tasks
 document.querySelector('#delete-all').addEventListener('click', e => {
-    let tasksStore = openTransaction('readwrite');
-    let statusIndex = tasksStore.index("status");
-    let searchRequest = statusIndex.getAll('completed');
-    searchRequest.onsuccess = e => {
-        let completedTasks = searchRequest.result;
-        completedTasks.forEach(task => {
-            let id = task.id;
-            let deleteRequest = tasksStore.delete(id);
-            deleteRequest.onsuccess = e => {
-                document.querySelector(`#task_${id}`).remove();
-            }
-        })
-    };
+    sqldb.transaction(function (tx) {
+        tx.executeSql("DELETE FROM TASKS WHERE status=?", ['completed'],
+            function (tx, result) {
+                let completedTasks = document.querySelectorAll("[data-status=completed]");
+                completedTasks.forEach((task) => {
+                    let index = task.id.split("_")[1];
+                    tasks = tasks.filter((obj) => obj.id != index);
+                    task.remove();
+                });
+            }, null);
+    });
 })
 
 /* -----------------------------
@@ -186,19 +175,19 @@ tabsList.forEach(tab => {
 
 // get all storing tasks to update the UI
 function createAllTasks() {
-    let tasksStore = openTransaction('readonly');
-    let allTasks = tasksStore.getAll();
-    allTasks.onsuccess = e => {
-        tasks = allTasks.result;
-        for (let i = 0; i < tasks.length; i++) {
-            count = parseInt(tasks[i].id) > count ? parseInt(tasks[i].id) : count;
-            createNewTaskInDom(tasks[i]);
-        }
-        count++;
-    }
-}
-
-function openTransaction(type) {
-    let transaction = db.transaction("tasks", type);
-    return transaction.objectStore("tasks");
+    sqldb.transaction(function (tx) {
+        tx.executeSql('SELECT * FROM TASKS', [], function (tx, results) {
+            let length = results.rows.length;
+            if (length > 0) {
+                tasks = [];
+                for (let i = 0; i < length; i++) {
+                    let task = results.rows.item(i);
+                    tasks.push(task);
+                    count = parseInt(task.id) > count ? parseInt(task.id) : count;
+                    createNewTaskInDom(task);
+                }
+                count++;
+            }
+        }, null);
+    });
 }
